@@ -1,0 +1,5 @@
+[]
+access = read : [ ], write : [ ]
+
+[vault_sync_credential/logging]
+export = system
