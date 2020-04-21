@@ -8,10 +8,10 @@ class SecretEncryption(object):
     _masked_secret = '**********'
 
 
-    def __init__(self, input_stanza, service, realm_prefix=None, logger=None):
+    def __init__(self, input_stanza, service, realm_prefix=None, required_on_edit_fields=[]):
         self._service = service
         self._input_type, self._input_name = input_stanza.split('://')
-        self._logger = logger
+        self._required_on_edit_fields = required_on_edit_fields
 
         # use specified realm_prefix, or the input type if none was given
         self._realm_prefix = realm_prefix
@@ -48,8 +48,18 @@ class SecretEncryption(object):
         input_path = "{0}/{1}".format(inputs_path_for_kind, UrlEncoded(self._input_name, encode_slash=True))
         input = self._service.input(input_path)
 
+        # the change we are explicitly making
+        input_changes = {
+            field: self._masked_secret,
+        }
+
+        # add fields that are required on edit
+        for field_name in self._required_on_edit_fields:
+            if not field_name in input_changes:
+                input_changes[field_name] = input.content[field_name]
+
         # this causes the input config to refresh, resulting in this input instance ending and being started again
-        input.update(**{field: self._masked_secret})
+        input.update(**input_changes)
 
 
     def get_secret(self, field):

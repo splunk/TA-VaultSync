@@ -103,7 +103,9 @@ class VaultSyncCredentialScript(Script):
                 setattr(self, argument_name, input_config[argument_name])
                 self._logger.debug("{0}: fetched argument {1}".format(input_name, argument_name))
 
-            encryption = secret_encryption.SecretEncryption(input_stanza=input_name, service=self._service)
+            required_on_edit_field_names = filter(lambda argument_name: self._arguments[argument_name].get("required_on_edit", False), self._arguments)
+            encryption = secret_encryption.SecretEncryption(input_stanza=input_name, service=self._service, required_on_edit_fields=required_on_edit_field_names)
+
             for argument_name in self._encrypted_arguments: 
                 setattr(self, argument_name, encryption.encrypt_and_get_secret(getattr(self, argument_name), argument_name))
                 self._logger.debug("{0}: handled encrypted argument {1}".format(input_name, argument_name))
