@@ -72,8 +72,8 @@ class SecretEncryption(object):
 
 
     def credential_for_field(self, field):
-        for credential in self._service.storage_passwords:
-            if credential.realm == self._credential_realm() and credential.username == field:
-                return credential
+        password_name = "{0}:{1}:".format(self._credential_realm(), field)
+        if password_name in self._service.storage_passwords:
+            return self._service.storage_passwords[password_name]
 
         return None
