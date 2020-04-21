@@ -5,6 +5,7 @@ import sys
 import os
 import logging
 import logging.handlers
+from splunk_utils import secret_encryption
 
 
 class VaultSyncCredentialScript(Script):
@@ -15,45 +16,40 @@ class VaultSyncCredentialScript(Script):
             "title": "Vault URL",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
-            "required_on_edit": True,
         },
         "vault_token": {
             "title": "Vault Token",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
-            "required_on_edit": True,
         },
         "vault_secret_path": {
             "title": "Vault Secret Path",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
-            "required_on_edit": True,
         },
         "vault_secret_key": {
             "title": "Vault Secret Key",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
-            "required_on_edit": True,
         },
         "credential_app": {
             "title": "Credential App Context",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
-            "required_on_edit": True,
         },
         "credential_realm": {
             "title": "Credential Realm",
             "data_type": Argument.data_type_string,
             "required_on_create": False,
-            "required_on_edit": False,
         },
         "credential_username": {
             "title": "Credential Username",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
-            "required_on_edit": True,
         },
     }
+
+    _encrypted_arguments = [ 'vault_token' ]
 
 
     def configure_logging(self):
@@ -106,6 +102,11 @@ class VaultSyncCredentialScript(Script):
             for argument_name in self._arguments:
                 setattr(self, argument_name, input_config[argument_name])
                 self._logger.debug("{0}: fetched argument {1}".format(input_name, argument_name))
+
+            encryption = secret_encryption.SecretEncryption(input_stanza=input_name, service=self._service)
+            for argument_name in self._encrypted_arguments: 
+                setattr(self, argument_name, encryption.encrypt_and_get_secret(getattr(self, argument_name), argument_name))
+                self._logger.debug("{0}: handled encrypted argument {1}".format(input_name, argument_name))
 
 
 if __name__ == "__main__":
