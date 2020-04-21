@@ -28,18 +28,19 @@ class SecretEncryption(object):
         return self.get_secret(field)
 
 
-    def _credential_realm_for_field(self, field):
-        return "{0}-{1}".format(self._realm_prefix, field)
+    def _credential_realm(self):
+        return "{0}-{1}".format(self._realm_prefix, self._input_name)
 
         
     def encrypt_secret(self, secret, field):
-        # If the credential already exists, delete it.
+        # If the credential already exists, update it.
         found_secret = self.credential_for_field(field)
         if found_secret:
-            found_secret.delete()
+            found_secret.update(password=secret)
 
-        # Create the credential.
-        self._service.storage_passwords.create(secret, self._input_name, self._credential_realm_for_field(field))
+        else:
+            # Create the credential.
+            self._service.storage_passwords.create(secret, field, self._credential_realm())
 
 
     def mask_secret(self, field):
@@ -63,16 +64,16 @@ class SecretEncryption(object):
 
 
     def get_secret(self, field):
-        found_credential = self.credential_for_field(field).content.clear_password
+        found_credential = self.credential_for_field(field)
         if found_credential:
-            return self.credential_for_field(field).content.clear_password
+            return found_credential.content.clear_password
 
-        raise Exception("No credential found for {0} in realm {1}".format(field, self._credential_realm_for_field(field)))
+        raise Exception("No credential found for {0} in realm {1}".format(field, self._credential_realm()))
 
 
     def credential_for_field(self, field):
         for credential in self._service.storage_passwords:
-            if credential.realm == self._credential_realm_for_field(field) and credential.username == self._input_name:
+            if credential.realm == self._credential_realm() and credential.username == field:
                 return credential
 
         return None
