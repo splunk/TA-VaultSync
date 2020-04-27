@@ -10,8 +10,8 @@ from splunk_utils import secret_encryption
 from vault_utils import vault_interface
 
 
-class VaultSyncCredentialScript(Script):
-    _script_name = "vault_sync_credential"
+class VaultSyncKVCredentialScript(Script):
+    _script_name = "vault_sync_kv_credential"
 
     _arguments = {
         "vault_url": {
@@ -29,8 +29,8 @@ class VaultSyncCredentialScript(Script):
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
-        "vault_engine_name": {
-            "title": "Vault Engine Name",
+        "vault_engine_path": {
+            "title": "Vault Engine Path",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
@@ -91,7 +91,7 @@ class VaultSyncCredentialScript(Script):
 
 
     def get_scheme(self):
-        scheme = Scheme("Vault Synchronize Credential")
+        scheme = Scheme("Vault Synchronize KV Credential")
         scheme.use_single_instance = False
 
         for argument_name, argument_config in self._arguments.items():
@@ -131,7 +131,7 @@ class VaultSyncCredentialScript(Script):
 
         vault = vault_interface.Vault(addr=self.vault_url, namespace=self.vault_namespace, token=self.vault_token)
 
-        fetched_vault_secret = vault.kv_secret_key(engine=self.vault_engine_name, path=self.vault_secret_path, key=self.vault_secret_key)
+        fetched_vault_secret = vault.kv_secret_key(engine=self.vault_engine_path, path=self.vault_secret_path, key=self.vault_secret_key)
 
         credential_session = self._service
         # switch app context if one was specified
@@ -162,4 +162,4 @@ class VaultSyncCredentialScript(Script):
             self._logger.debug("{0}: credential created".format(input_name))
 
 if __name__ == "__main__":
-    sys.exit(VaultSyncCredentialScript().run(sys.argv))
+    sys.exit(VaultSyncKVCredentialScript().run(sys.argv))
