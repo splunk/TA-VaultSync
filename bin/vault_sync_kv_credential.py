@@ -122,7 +122,7 @@ class VaultSyncKVCredentialScript(Script):
                 self._logger.debug("{0}: fetched argument {1}".format(input_name, argument_name))
 
             required_on_edit_field_names = filter(lambda argument_name: self._arguments[argument_name].get("required_on_edit", False), self._arguments)
-            encryption = secret_encryption.SecretEncryption(input_stanza=input_name, service=self._service, required_on_edit_fields=required_on_edit_field_names)
+            encryption = secret_encryption.SecretEncryption(input_stanza=input_name, service=self.service, required_on_edit_fields=required_on_edit_field_names)
 
             for argument_name in self._encrypted_arguments: 
                 # all encrypted arguments in this input are required, so the checking above should be sufficient
@@ -135,10 +135,10 @@ class VaultSyncKVCredentialScript(Script):
         vault_kv_secret = vault_kv_engine.secret(self.vault_secret_path)
         fetched_vault_secret = vault_kv_secret.key(self.vault_secret_key)
 
-        credential_session = self._service
+        credential_session = self.service
         # switch app context if one was specified
         if self.credential_app:
-            credential_session = client.connect(app=self.credential_app, token=self._service.token)
+            credential_session = client.connect(app=self.credential_app, token=self.service.token)
 
         # default realm to empty string
         credential_title = "{0}:{1}:".format(self.credential_realm or "", self.credential_username)
