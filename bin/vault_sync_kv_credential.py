@@ -138,11 +138,8 @@ class VaultSyncKVCredentialScript(Script):
         if self.credential_app:
             credential_session = client.connect(app=self.credential_app, token=self._service.token)
 
-        # default to empty realm
-        credential_title = ":{0}:".format(self.credential_username)
-        if self.credential_realm:
-            # use realm is given
-            credential_title = "{0}:{1}:".format(self.credential_realm, self.credential_username)
+        # default realm to empty string
+        credential_title = "{0}:{1}:".format(self.credential_realm or "", self.credential_username)
 
         self._logger.debug("{0}: working with credential: {1}".format(input_name, credential_title))
 
