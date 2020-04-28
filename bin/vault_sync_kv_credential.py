@@ -131,7 +131,9 @@ class VaultSyncKVCredentialScript(Script):
 
         vault = vault_interface.Vault(addr=self.vault_url, namespace=self.vault_namespace, token=self.vault_token)
 
-        fetched_vault_secret = vault.kv_secret_key(engine=self.vault_engine_path, path=self.vault_secret_path, key=self.vault_secret_key)
+        vault_kv_engine = vault.engine("kv", self.vault_engine_path)
+        vault_kv_secret = vault_kv_engine.secret(self.vault_secret_path)
+        fetched_vault_secret = vault_kv_secret.key(self.vault_secret_key)
 
         credential_session = self._service
         # switch app context if one was specified
