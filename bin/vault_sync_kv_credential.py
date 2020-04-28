@@ -115,7 +115,7 @@ class VaultSyncKVCredentialScript(Script):
                 if argument_name not in input_config:
                     if self._arguments[argument_name].get('required_on_create'):
                         self._logger.critical("{0} Missing required field {1}, quitting".format(input_name, argument_name))
-                        exit(-1)
+                        sys.exit(-1)
 
                 # use .get(argument_name) to use the default of None if missing
                 setattr(self, argument_name, input_config.get(argument_name))
