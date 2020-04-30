@@ -1,5 +1,5 @@
 []
 access = read : [ ], write : [ ]
 
-[vault_sync_credential/logging]
+[vault_sync_kv_credential/logging]
 export = system

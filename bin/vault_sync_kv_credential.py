@@ -1,15 +1,17 @@
 from __future__ import absolute_import
 
 from splunklib.modularinput import *
+from splunklib import client
 import sys
 import os
 import logging
 import logging.handlers
 from splunk_utils import secret_encryption
+from vault_utils import vault_interface
 
 
-class VaultSyncCredentialScript(Script):
-    _script_name = "vault_sync_credential"
+class VaultSyncKVCredentialScript(Script):
+    _script_name = "vault_sync_kv_credential"
 
     _arguments = {
         "vault_url": {
@@ -17,8 +19,18 @@ class VaultSyncCredentialScript(Script):
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
+        "vault_namespace": {
+            "title": "Vault Namespace",
+             "data_type": Argument.data_type_string,
+            "required_on_create": False,
+        },
         "vault_token": {
             "title": "Vault Token",
+            "data_type": Argument.data_type_string,
+            "required_on_create": True,
+        },
+        "vault_engine_path": {
+            "title": "Vault Engine Path",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
@@ -35,7 +47,7 @@ class VaultSyncCredentialScript(Script):
         "credential_app": {
             "title": "Credential App Context",
             "data_type": Argument.data_type_string,
-            "required_on_create": True,
+            "required_on_create": False,
         },
         "credential_realm": {
             "title": "Credential Realm",
@@ -79,7 +91,7 @@ class VaultSyncCredentialScript(Script):
 
 
     def get_scheme(self):
-        scheme = Scheme("Vault Synchronize Credential")
+        scheme = Scheme("Vault Synchronize KV Credential")
         scheme.use_single_instance = False
 
         for argument_name, argument_config in self._arguments.items():
@@ -100,16 +112,53 @@ class VaultSyncCredentialScript(Script):
             self._logger.debug("input_name: {0}".format(input_name))
 
             for argument_name in self._arguments:
-                setattr(self, argument_name, input_config[argument_name])
+                if argument_name not in input_config:
+                    if self._arguments[argument_name].get('required_on_create'):
+                        self._logger.critical("{0} Missing required field {1}, quitting".format(input_name, argument_name))
+                        sys.exit(-1)
+
+                # use .get(argument_name) to use the default of None if missing
+                setattr(self, argument_name, input_config.get(argument_name))
                 self._logger.debug("{0}: fetched argument {1}".format(input_name, argument_name))
 
             required_on_edit_field_names = filter(lambda argument_name: self._arguments[argument_name].get("required_on_edit", False), self._arguments)
-            encryption = secret_encryption.SecretEncryption(input_stanza=input_name, service=self._service, required_on_edit_fields=required_on_edit_field_names)
+            encryption = secret_encryption.SecretEncryption(input_stanza=input_name, service=self.service, required_on_edit_fields=required_on_edit_field_names)
 
             for argument_name in self._encrypted_arguments: 
+                # all encrypted arguments in this input are required, so the checking above should be sufficient
                 setattr(self, argument_name, encryption.encrypt_and_get_secret(getattr(self, argument_name), argument_name))
                 self._logger.debug("{0}: handled encrypted argument {1}".format(input_name, argument_name))
 
+        vault = vault_interface.Vault(addr=self.vault_url, namespace=self.vault_namespace, token=self.vault_token)
+
+        vault_kv_engine = vault.engine("kv", self.vault_engine_path)
+        vault_kv_secret = vault_kv_engine.secret(self.vault_secret_path)
+        fetched_vault_secret = vault_kv_secret.key(self.vault_secret_key)
+
+        credential_session = self.service
+        # switch app context if one was specified
+        if self.credential_app:
+            credential_session = client.connect(app=self.credential_app, token=self.service.token)
+
+        # default realm to empty string
+        credential_title = "{0}:{1}:".format(self.credential_realm or "", self.credential_username)
+
+        self._logger.debug("{0}: working with credential: {1}".format(input_name, credential_title))
+
+        if credential_title in credential_session.storage_passwords:
+            self._logger.debug("{0}: found existing credential".format(input_name))
+
+            found_credential = credential_session.storage_passwords[credential_title]
+            if found_credential.content.clear_password != fetched_vault_secret:
+                self._logger.debug("{0}: stored credential is out of date, updating".format(input_name))
+                found_credential.update(password=fetched_vault_secret)
+            else:
+                self._logger.debug("{0}: stored credential is up to date, doing nothing".format(input_name))
+
+        else:
+            self._logger.info("{0}: no existing credential found, creating".format(input_name))
+            credential_session.storage_passwords.create(fetched_vault_secret, self.credential_username, self.credential_realm)
+            self._logger.debug("{0}: credential created".format(input_name))
 
 if __name__ == "__main__":
-    sys.exit(VaultSyncCredentialScript().run(sys.argv))
+    sys.exit(VaultSyncKVCredentialScript().run(sys.argv))
