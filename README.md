@@ -68,10 +68,5 @@ Synchronize secrets from Hashicorp Vault's KV Engine to Splunk's Credential Stor
     * Keep rotate_backup_count rotated (inactive) log files
 
     log_level = [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET]
-    * Set the log level.  Valid values are:
-    * CRITICAL
-    * ERROR
-    * WARNING
-    * INFO
-    * DEBUG
-    * NOTSET
+    * Set the log level.  Valid values are shown above.
+    * Defaults to INFO
