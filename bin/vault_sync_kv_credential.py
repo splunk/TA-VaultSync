@@ -1,3 +1,17 @@
+#    Copyright 2020 Splunk, Inc.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+
 from __future__ import absolute_import
 
 from splunklib.modularinput import *
@@ -15,47 +29,47 @@ class VaultSyncKVCredentialScript(Script):
 
     _arguments = {
         "vault_url": {
-            "title": "Vault URL",
+            "title": "Hashicorp Vault URL",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
         "vault_namespace": {
-            "title": "Vault Namespace",
+            "title": "The namespace in vault containing your secret",
              "data_type": Argument.data_type_string,
             "required_on_create": False,
         },
         "vault_token": {
-            "title": "Vault Token",
+            "title": "Authorization token with read access to your secret",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
         "vault_engine_path": {
-            "title": "Vault Engine Path",
+            "title": "The path to the KV Engine containing your secret",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
         "vault_secret_path": {
-            "title": "Vault Secret Path",
+            "title": "The path, relative from vault_engine_path, of your secret",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
         "vault_secret_key": {
-            "title": "Vault Secret Key",
+            "title": "The key in your KV secret to synchronize",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
         "credential_app": {
-            "title": "Credential App Context",
+            "title": "The app context to use for the created/updated credential",
             "data_type": Argument.data_type_string,
             "required_on_create": False,
         },
         "credential_realm": {
-            "title": "Credential Realm",
+            "title": "The realm of the created/updated credential",
             "data_type": Argument.data_type_string,
             "required_on_create": False,
         },
         "credential_username": {
-            "title": "Credential Username",
+            "title": "The username of the created/updated credential",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
