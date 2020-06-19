@@ -13,6 +13,8 @@
 #    limitations under the License.
 
 [vault_sync_kv_credential://<name>]
+# see default/inputs.conf for the reasoning of using python2
+python.version = python2
 vault_url = <string>
 vault_namespace = <string>
 vault_token = <string>
