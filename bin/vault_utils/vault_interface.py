@@ -13,7 +13,7 @@
 #    limitations under the License.
 
 import requests
-from engine import VaultEngine
+from .engine import VaultEngine
 
 class Vault(object):
 
