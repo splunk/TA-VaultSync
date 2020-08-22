@@ -53,8 +53,13 @@ class VaultSyncKVCredentialScript(Script):
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
-        "vault_secret_key": {
-            "title": "The key in your KV secret to synchronize",
+        "vault_username_key": {
+            "title": "The key in your KV secret containing the username to synchronize",
+            "data_type": Argument.data_type_string,
+            "required_on_create": True,
+        },
+        "vault_password_key": {
+            "title": "The key in your KV secret containing the password to synchronize",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
@@ -67,11 +72,6 @@ class VaultSyncKVCredentialScript(Script):
             "title": "The realm of the created/updated credential",
             "data_type": Argument.data_type_string,
             "required_on_create": False,
-        },
-        "credential_username": {
-            "title": "The username of the created/updated credential",
-            "data_type": Argument.data_type_string,
-            "required_on_create": True,
         },
     }
 
@@ -147,7 +147,8 @@ class VaultSyncKVCredentialScript(Script):
 
         vault_kv_engine = vault.engine("kv", self.vault_engine_path)
         vault_kv_secret = vault_kv_engine.secret(self.vault_secret_path)
-        fetched_vault_secret = vault_kv_secret.key(self.vault_secret_key)
+        fetched_vault_username = vault_kv_secret.key(self.vault_username_key)
+        fetched_vault_password = vault_kv_secret.key(self.vault_password_key)
 
         credential_session = self.service
         # switch app context if one was specified
@@ -155,7 +156,7 @@ class VaultSyncKVCredentialScript(Script):
             credential_session = client.connect(app=self.credential_app, token=self.service.token)
 
         # default realm to empty string
-        credential_title = "{0}:{1}:".format(self.credential_realm or "", self.credential_username)
+        credential_title = "{0}:{1}:".format(self.credential_realm or "", fetched_vault_username)
 
         self._logger.debug("{0}: working with credential: {1}".format(input_name, credential_title))
 
@@ -163,15 +164,15 @@ class VaultSyncKVCredentialScript(Script):
             self._logger.debug("{0}: found existing credential".format(input_name))
 
             found_credential = credential_session.storage_passwords[credential_title]
-            if found_credential.content.clear_password != fetched_vault_secret:
+            if found_credential.content.clear_password != fetched_vault_password:
                 self._logger.debug("{0}: stored credential is out of date, updating".format(input_name))
-                found_credential.update(password=fetched_vault_secret)
+                found_credential.update(password=fetched_vault_password)
             else:
                 self._logger.debug("{0}: stored credential is up to date, doing nothing".format(input_name))
 
         else:
             self._logger.info("{0}: no existing credential found, creating".format(input_name))
-            credential_session.storage_passwords.create(fetched_vault_secret, self.credential_username, self.credential_realm)
+            credential_session.storage_passwords.create(fetched_vault_password, fetched_vault_username, self.credential_realm)
             self._logger.debug("{0}: credential created".format(input_name))
 
 if __name__ == "__main__":
