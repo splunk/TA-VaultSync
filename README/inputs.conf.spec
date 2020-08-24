@@ -23,3 +23,4 @@ vault_username_key = <string>
 vault_password_key = <string>
 credential_app = <string>
 credential_realm = <string>
+remove_old_versions = <integer>

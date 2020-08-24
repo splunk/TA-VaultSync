@@ -73,6 +73,11 @@ class VaultSyncKVCredentialScript(Script):
             "data_type": Argument.data_type_string,
             "required_on_create": False,
         },
+        "remove_old_versions": {
+            "title": "How many old versions of this secret should be forcibly removed from passwords.conf",
+            "data_type": Argument.data_type_number,
+            "required_on_create": False,
+        },
     }
 
     _encrypted_arguments = [ 'vault_token' ]
@@ -147,6 +152,11 @@ class VaultSyncKVCredentialScript(Script):
 
         vault_kv_engine = vault.engine("kv", self.vault_engine_path)
         vault_kv_secret = vault_kv_engine.secret(self.vault_secret_path)
+
+        fetched_secret_version = vault_kv_secret.version()
+        # TODO - this should be .debug(), but level setting doesn't seem to be working?
+        self._logger.info("{0}: latest KV secret version: {1}".format(input_name, fetched_secret_version))
+
         fetched_vault_username = vault_kv_secret.key(self.vault_username_key)
         fetched_vault_password = vault_kv_secret.key(self.vault_password_key)
 
@@ -174,6 +184,29 @@ class VaultSyncKVCredentialScript(Script):
             self._logger.info("{0}: no existing credential found, creating".format(input_name))
             credential_session.storage_passwords.create(fetched_vault_password, fetched_vault_username, self.credential_realm)
             self._logger.debug("{0}: credential created".format(input_name))
+
+        if self.remove_old_versions:
+            # TODO - do type conversions when fetching arguments
+            oldest_removeable_version = vault_kv_secret.version() - int(self.remove_old_versions)
+
+            self._logger.info("{0}: removeable versions".format(input_name))
+            for previous_version in vault_kv_secret.previous_versions():
+                if previous_version.version() < oldest_removeable_version:
+                    break
+                self._logger.info("  {0}: previous version: {1}".format(input_name, previous_version.version()))
+
+                previous_version_vault_username = previous_version.key(self.vault_username_key)
+                previous_version_vault_password = previous_version.key(self.vault_password_key)
+
+                # we only need to look for differing usernames, because differing passwords with the same username will have already been updated
+                if previous_version_vault_username != fetched_vault_username:
+                    self._logger.info("  {0}: version {1} is stale".format(input_name, previous_version.version()))
+                    credential_title = "{0}:{1}:".format(self.credential_realm or "", previous_version_vault_username)
+                    if credential_title in credential_session.storage_passwords:
+                        self._logger.info("  {0}: version {1}'s username has an old entry in passwords.conf".format(input_name, previous_version.version()))
+                        credential_session.storage_passwords[credential_title].delete()
+                else:
+                    self._logger.info("  {0}: version {1} is identical to latest".format(input_name, previous_version.version()))
 
 if __name__ == "__main__":
     sys.exit(VaultSyncKVCredentialScript().run(sys.argv))

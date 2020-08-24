@@ -37,10 +37,10 @@ class Vault(object):
     def engine(self, engine_type, engine_path):
         return VaultEngine.engine_at_path(self, engine_type, engine_path)
 
-    def _get(self, path):
+    def _get(self, path, params={}):
         url = self.url_for_path(path)
         print("GET {0}".format(url))
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers, params=params)
         response.raise_for_status()
 
         return response.json()["data"]

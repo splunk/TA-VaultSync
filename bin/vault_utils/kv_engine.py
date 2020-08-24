@@ -24,5 +24,51 @@ class VaultKVEngine(VaultEngine):
 
 class VaultKVSecret(VaultSecret):
 
+    def __init__(self, vault_engine, path, version=None):
+        super(VaultKVSecret, self).__init__(vault_engine, path)
+
+        # explicit version defined
+        self._version = version
+
+        # attempt to use a requested "version 0"
+        if self._version is None:
+            # if explicitly defined version was, well, not defined, ask for and use the latest
+            self._version = self.version()
+
+
+    def _get(self):
+        if self._version is not None:
+            return super(VaultKVSecret, self)._get(params={'version': self._version})
+
+        return super(VaultKVSecret, self)._get()
+
+    def version(self):
+        return self._get()["metadata"]["version"]
+
     def key(self, key):
         return self._get()["data"][key]
+
+    def previous_version_number(self):
+        return self._version - 1
+
+    def previous_version(self):
+        if self.previous_version_number() == 0:
+            return None
+
+        previous_version = VaultKVSecret(self._vault_engine, self._path, self._version - 1)
+
+        try:
+            previous_version.version()
+        except:
+            return None
+
+        return previous_version
+
+    def previous_versions(self):
+        my_previous_version = self.previous_version()
+
+        if my_previous_version:
+            yield my_previous_version
+
+            for previous_version in my_previous_version.previous_versions():
+                yield previous_version
