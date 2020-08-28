@@ -16,7 +16,9 @@
 python.version = python3
 vault_url = <string>
 vault_namespace = <string>
-vault_token = <string>
+vault_approle_path = <string>
+vault_approle_role_id = <string>
+vault_approle_secret_id = <string>
 vault_engine_path = <string>
 vault_secret_path = <string>
 vault_username_key = <string>

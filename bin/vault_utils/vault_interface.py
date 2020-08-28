@@ -13,15 +13,35 @@
 #    limitations under the License.
 
 import requests
+import json
 from .engine import VaultEngine
 
 class Vault(object):
 
-    def __init__(self, addr, token, namespace=None):
+    def __init__(self, addr, approle_path, role_id, secret_id, namespace=None):
         self._addr = addr
         self._api_url = "{0}/v1".format(addr)
-        self._token = token
+        self._approle_path = approle_path
+        self._role_id = role_id
+        self._secret_id = secret_id
         self._namespace = namespace
+        self._token = self._authenticate_approle()
+
+    # TODO - this should be abstracted into an authentication method class
+    def _authenticate_approle(self):
+        auth_data = json.dumps({
+            "role_id": self._role_id,
+            "secret_id": self._secret_id,
+        })
+
+        auth_url = self.url_for_path(
+            "auth/{0}/login".format(self._approle_path)
+        )
+
+        r = requests.post(auth_url, data=auth_data)
+
+        # TODO - this needs error handling
+        return r.json()["auth"]["client_token"]
 
     @property
     def headers(self):

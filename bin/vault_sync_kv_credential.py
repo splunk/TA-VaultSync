@@ -38,8 +38,18 @@ class VaultSyncKVCredentialScript(Script):
              "data_type": Argument.data_type_string,
             "required_on_create": False,
         },
-        "vault_token": {
-            "title": "Authorization token with read access to your secret",
+        "vault_approle_path": {
+            "title": "Path to the AppRole method",
+            "data_type": Argument.data_type_string,
+            "required_on_create": True,
+        },
+        "vault_approle_role_id": {
+            "title": "AppRole role_id with read access to your secret",
+            "data_type": Argument.data_type_string,
+            "required_on_create": True,
+        },
+        "vault_approle_secret_id": {
+            "title": "AppRole secret_id for your role_id",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
@@ -80,7 +90,7 @@ class VaultSyncKVCredentialScript(Script):
         },
     }
 
-    _encrypted_arguments = [ 'vault_token' ]
+    _encrypted_arguments = [ 'vault_approle_role_id', 'vault_approle_secret_id' ]
 
 
     def configure_logging(self):
@@ -148,7 +158,7 @@ class VaultSyncKVCredentialScript(Script):
                 setattr(self, argument_name, encryption.encrypt_and_get_secret(getattr(self, argument_name), argument_name))
                 self._logger.debug("{0}: handled encrypted argument {1}".format(input_name, argument_name))
 
-        vault = vault_interface.Vault(addr=self.vault_url, namespace=self.vault_namespace, token=self.vault_token)
+        vault = vault_interface.Vault(addr=self.vault_url, namespace=self.vault_namespace, approle_path=self.vault_approle_path, role_id=self.vault_approle_role_id, secret_id=self.vault_approle_secret_id)
 
         vault_kv_engine = vault.engine("kv", self.vault_engine_path)
         vault_kv_secret = vault_kv_engine.secret(self.vault_secret_path)
