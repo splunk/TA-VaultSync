@@ -26,9 +26,10 @@ Synchronize secrets from Hashicorp Vault's KV Engine to Splunk's Credential Stor
     * The namespace in vault containing your secret
     * Optional
 
-    vault_approle_path = <string>
-    * Path at which your AppRole authentication method is mounted
-    * Required
+    vault_approle_auth_path = <string>
+    * Path at which your AppRole authentication method is enabled, with no leading or trailing slash
+    * https://www.vaultproject.io/api-docs/system/auth#path
+    * Defaults to "approle"
 
     vault_approle_role_id = <string>
     * The role_id of an AppRole that has read access to your secret
@@ -38,6 +39,7 @@ Synchronize secrets from Hashicorp Vault's KV Engine to Splunk's Credential Stor
     vault_approle_secret_id = <string>
     * A secret_id granting access to your role_id
     * This will be encrypted into Splunk's Credential Store any time the input runs and detects a plaintext value
+    * Vault allows using only a role_id, without a secret_id along with it, but this Add-on requires a secret_id
     * Required
 
     vault_engine_path = <string>
