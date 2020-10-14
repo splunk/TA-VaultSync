@@ -206,7 +206,6 @@ class VaultSyncKVCredentialScript(Script):
                 self._logger.info("  {0}: previous version: {1}".format(input_name, previous_version.version()))
 
                 previous_version_vault_username = previous_version.key(self.vault_username_key)
-                previous_version_vault_password = previous_version.key(self.vault_password_key)
 
                 # we only need to look for differing usernames, because differing passwords with the same username will have already been updated
                 if previous_version_vault_username != fetched_vault_username:
