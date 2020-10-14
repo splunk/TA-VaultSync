@@ -55,7 +55,7 @@ Synchronize secrets from Hashicorp Vault's KV Engine to Splunk's Credential Stor
     * Required
 
     vault_secret_key = <string>
-    * The key in your KV secret containg the username to synchronize
+    * The key in your KV secret containing the key to synchronize
     * Required
 
     remove_old_versions = <integer>
