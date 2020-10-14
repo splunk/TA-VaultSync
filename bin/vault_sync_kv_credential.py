@@ -212,7 +212,7 @@ class VaultSyncKVCredentialScript(Script):
                     self._logger.info("  {0}: version {1} is stale".format(input_name, previous_version.version()))
                     credential_title = "{0}:{1}:".format(self.credential_realm or "", previous_version_vault_username)
                     if credential_title in credential_session.storage_passwords:
-                        self._logger.info("  {0}: version {1}'s username has an old entry in passwords.conf".format(input_name, previous_version.version()))
+                        self._logger.info("  {0}: version {1}'s username has an old entry in passwords.conf, removing".format(input_name, previous_version.version()))
                         credential_session.storage_passwords[credential_title].delete()
                 else:
                     self._logger.info("  {0}: version {1} is identical to latest".format(input_name, previous_version.version()))
