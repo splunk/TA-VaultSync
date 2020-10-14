@@ -67,8 +67,6 @@ class VaultKVSecret(VaultSecret):
     def previous_versions(self):
         my_previous_version = self.previous_version()
 
-        if my_previous_version:
+        while my_previous_version:
             yield my_previous_version
-
-            for previous_version in my_previous_version.previous_versions():
-                yield previous_version
+            my_previous_version = my_previous_version.previous_version()
