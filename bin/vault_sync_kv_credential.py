@@ -38,8 +38,18 @@ class VaultSyncKVCredentialScript(Script):
              "data_type": Argument.data_type_string,
             "required_on_create": False,
         },
-        "vault_token": {
-            "title": "Authorization token with read access to your secret",
+        "vault_approle_auth_path": {
+            "title": "Path to the AppRole authentication method",
+            "data_type": Argument.data_type_string,
+            "required_on_create": False,
+        },
+        "vault_approle_role_id": {
+            "title": "AppRole role_id with read access to your secret",
+            "data_type": Argument.data_type_string,
+            "required_on_create": True,
+        },
+        "vault_approle_secret_id": {
+            "title": "AppRole secret_id for your role_id",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
@@ -53,8 +63,13 @@ class VaultSyncKVCredentialScript(Script):
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
-        "vault_secret_key": {
-            "title": "The key in your KV secret to synchronize",
+        "vault_username_key": {
+            "title": "The key in your KV secret containing the username to synchronize",
+            "data_type": Argument.data_type_string,
+            "required_on_create": True,
+        },
+        "vault_password_key": {
+            "title": "The key in your KV secret containing the password to synchronize",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
@@ -68,14 +83,14 @@ class VaultSyncKVCredentialScript(Script):
             "data_type": Argument.data_type_string,
             "required_on_create": False,
         },
-        "credential_username": {
-            "title": "The username of the created/updated credential",
-            "data_type": Argument.data_type_string,
-            "required_on_create": True,
+        "remove_old_versions": {
+            "title": "How many old versions of this secret should be forcibly removed from passwords.conf",
+            "data_type": Argument.data_type_number,
+            "required_on_create": False,
         },
     }
 
-    _encrypted_arguments = [ 'vault_token' ]
+    _encrypted_arguments = [ 'vault_approle_role_id', 'vault_approle_secret_id' ]
 
 
     def configure_logging(self):
@@ -143,11 +158,16 @@ class VaultSyncKVCredentialScript(Script):
                 setattr(self, argument_name, encryption.encrypt_and_get_secret(getattr(self, argument_name), argument_name))
                 self._logger.debug("{0}: handled encrypted argument {1}".format(input_name, argument_name))
 
-        vault = vault_interface.Vault(addr=self.vault_url, namespace=self.vault_namespace, token=self.vault_token)
+        vault = vault_interface.Vault(addr=self.vault_url, namespace=self.vault_namespace, approle_path=self.vault_approle_auth_path, role_id=self.vault_approle_role_id, secret_id=self.vault_approle_secret_id)
 
         vault_kv_engine = vault.engine("kv", self.vault_engine_path)
         vault_kv_secret = vault_kv_engine.secret(self.vault_secret_path)
-        fetched_vault_secret = vault_kv_secret.key(self.vault_secret_key)
+
+        fetched_secret_version = vault_kv_secret.version()
+        self._logger.debug("{0}: latest KV secret version: {1}".format(input_name, fetched_secret_version))
+
+        fetched_vault_username = vault_kv_secret.key(self.vault_username_key)
+        fetched_vault_password = vault_kv_secret.key(self.vault_password_key)
 
         credential_session = self.service
         # switch app context if one was specified
@@ -155,7 +175,7 @@ class VaultSyncKVCredentialScript(Script):
             credential_session = client.connect(app=self.credential_app, token=self.service.token)
 
         # default realm to empty string
-        credential_title = "{0}:{1}:".format(self.credential_realm or "", self.credential_username)
+        credential_title = "{0}:{1}:".format(self.credential_realm or "", fetched_vault_username)
 
         self._logger.debug("{0}: working with credential: {1}".format(input_name, credential_title))
 
@@ -163,16 +183,38 @@ class VaultSyncKVCredentialScript(Script):
             self._logger.debug("{0}: found existing credential".format(input_name))
 
             found_credential = credential_session.storage_passwords[credential_title]
-            if found_credential.content.clear_password != fetched_vault_secret:
+            if found_credential.content.clear_password != fetched_vault_password:
                 self._logger.debug("{0}: stored credential is out of date, updating".format(input_name))
-                found_credential.update(password=fetched_vault_secret)
+                found_credential.update(password=fetched_vault_password)
             else:
                 self._logger.debug("{0}: stored credential is up to date, doing nothing".format(input_name))
 
         else:
             self._logger.info("{0}: no existing credential found, creating".format(input_name))
-            credential_session.storage_passwords.create(fetched_vault_secret, self.credential_username, self.credential_realm)
+            credential_session.storage_passwords.create(fetched_vault_password, fetched_vault_username, self.credential_realm)
             self._logger.debug("{0}: credential created".format(input_name))
+
+        if self.remove_old_versions:
+            # TODO - do type conversions when fetching arguments
+            oldest_removeable_version = vault_kv_secret.version() - int(self.remove_old_versions)
+
+            self._logger.info("{0}: removeable versions".format(input_name))
+            for previous_version in vault_kv_secret.previous_versions():
+                if previous_version.version() < oldest_removeable_version:
+                    break
+                self._logger.info("  {0}: previous version: {1}".format(input_name, previous_version.version()))
+
+                previous_version_vault_username = previous_version.key(self.vault_username_key)
+
+                # we only need to look for differing usernames, because differing passwords with the same username will have already been updated
+                if previous_version_vault_username != fetched_vault_username:
+                    self._logger.debug("  {0}: version {1} is stale".format(input_name, previous_version.version()))
+                    credential_title = "{0}:{1}:".format(self.credential_realm or "", previous_version_vault_username)
+                    if credential_title in credential_session.storage_passwords:
+                        self._logger.info("  {0}: version {1}'s username has an old entry in passwords.conf, removing".format(input_name, previous_version.version()))
+                        credential_session.storage_passwords[credential_title].delete()
+                else:
+                    self._logger.info("  {0}: version {1} is identical to latest".format(input_name, previous_version.version()))
 
 if __name__ == "__main__":
     sys.exit(VaultSyncKVCredentialScript().run(sys.argv))

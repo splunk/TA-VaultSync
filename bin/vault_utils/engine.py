@@ -38,10 +38,10 @@ class VaultEngine(object):
 
         return engine_class(vault, engine_path)
 
-    def _get(self, path):
+    def _get(self, path, params={}):
         path_with_engine = "{0}/{1}".format(self._engine_path, path)
 
-        return self._vault._get(path_with_engine)
+        return self._vault._get(path_with_engine, params=params)
 
 
 # decorator that tells VaultEngine we exist

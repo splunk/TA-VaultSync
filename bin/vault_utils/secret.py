@@ -18,7 +18,7 @@ class VaultSecret(object):
         self._vault_engine = vault_engine
         self._path = path
 
-    def _get(self):
+    def _get(self, params={}):
         data_path = "data/{0}".format(self._path)
 
-        return self._vault_engine._get(data_path)
+        return self._vault_engine._get(data_path, params=params)
