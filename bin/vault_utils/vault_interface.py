@@ -38,18 +38,19 @@ class Vault(object):
             "auth/{0}/login".format(self._approle_path)
         )
 
-        r = requests.post(auth_url, data=auth_data)
+        headers = {}
+        self._add_namespace(headers)
+        r = requests.post(auth_url, data=auth_data, headers=headers)
 
         # TODO - this needs error handling
         return r.json()["auth"]["client_token"]
 
-    @property
-    def headers(self):
-        headers = { "X-Vault-Token": self._token }
+    def _add_namespace(self, headers):
         if self._namespace:
             headers["X-Vault-Namespace"] = self._namespace
 
-        return headers
+    def _add_token(self, headers):
+        headers["X-Vault-Token"]
 
     def url_for_path(self, path):
         return "{0}/{1}".format(self._api_url, path)
@@ -59,8 +60,10 @@ class Vault(object):
 
     def _get(self, path, params={}):
         url = self.url_for_path(path)
-        print("GET {0}".format(url))
-        response = requests.get(url, headers=self.headers, params=params)
+        headers = {}
+        self._add_namespace(headers)
+        self._add_token(headers)
+        response = requests.get(url, headersheaders, params=params)
         response.raise_for_status()
 
         return response.json()["data"]
