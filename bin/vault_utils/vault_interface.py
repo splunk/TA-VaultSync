@@ -64,7 +64,7 @@ class Vault(object):
         headers = {}
         self._add_namespace(headers)
         self._add_token(headers)
-        response = requests.get(url, headersheaders, params=params)
+        response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
 
         return response.json()["data"]
