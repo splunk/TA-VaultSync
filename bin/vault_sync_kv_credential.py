@@ -171,6 +171,7 @@ class VaultSyncKVCredentialScript(Script):
             fetched_vault_password = vault_kv_secret.key(self.vault_password_key)
         except Exception as e:
             self._logger.critical("unable to fetch secret: {0}".format(e))
+            exit(-1)
 
         credential_session = self.service
         # switch app context if one was specified
