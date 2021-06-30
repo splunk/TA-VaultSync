@@ -158,7 +158,11 @@ class VaultSyncKVCredentialScript(Script):
                 setattr(self, argument_name, encryption.encrypt_and_get_secret(getattr(self, argument_name), argument_name))
                 self._logger.debug("{0}: handled encrypted argument {1}".format(input_name, argument_name))
 
-        vault = vault_interface.Vault(addr=self.vault_url, namespace=self.vault_namespace, approle_path=self.vault_approle_auth_path, role_id=self.vault_approle_role_id, secret_id=self.vault_approle_secret_id)
+        try:
+            vault = vault_interface.Vault(addr=self.vault_url, namespace=self.vault_namespace, approle_path=self.vault_approle_auth_path, role_id=self.vault_approle_role_id, secret_id=self.vault_approle_secret_id)
+        except:
+            self._logger.critical("unable to authenticate to vault: {0}".format(e))
+            exit(-1)
 
         vault_kv_engine = vault.engine("kv", self.vault_engine_path)
 
