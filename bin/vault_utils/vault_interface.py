@@ -41,6 +41,7 @@ class Vault(object):
         headers = {}
         self._add_namespace(headers)
         r = requests.post(auth_url, data=auth_data, headers=headers)
+        r.raise_for_status()
 
         # TODO - this needs error handling
         return r.json()["auth"]["client_token"]
@@ -50,7 +51,7 @@ class Vault(object):
             headers["X-Vault-Namespace"] = self._namespace
 
     def _add_token(self, headers):
-        headers["X-Vault-Token"]
+        headers["X-Vault-Token"] = self._token
 
     def url_for_path(self, path):
         return "{0}/{1}".format(self._api_url, path)
