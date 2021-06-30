@@ -166,8 +166,11 @@ class VaultSyncKVCredentialScript(Script):
         fetched_secret_version = vault_kv_secret.version()
         self._logger.debug("{0}: latest KV secret version: {1}".format(input_name, fetched_secret_version))
 
-        fetched_vault_username = vault_kv_secret.key(self.vault_username_key)
-        fetched_vault_password = vault_kv_secret.key(self.vault_password_key)
+        try:
+            fetched_vault_username = vault_kv_secret.key(self.vault_username_key)
+            fetched_vault_password = vault_kv_secret.key(self.vault_password_key)
+        except Exception as e:
+            self._logger.critical("unable to fetch secret: {0}".format(e))
 
         credential_session = self.service
         # switch app context if one was specified
