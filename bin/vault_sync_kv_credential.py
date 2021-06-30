@@ -205,7 +205,7 @@ class VaultSyncKVCredentialScript(Script):
             found_clear_password = None
             try:
                 found_clear_password = found_credential.content.clear_password
-            except KeyError:
+            except AttributeError:
                 self._logger.info("{0}: credential entry has no clear password")
 
             if found_clear_password != fetched_vault_password:
