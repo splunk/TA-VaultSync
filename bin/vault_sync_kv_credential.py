@@ -163,7 +163,12 @@ class VaultSyncKVCredentialScript(Script):
         vault_kv_engine = vault.engine("kv", self.vault_engine_path)
         vault_kv_secret = vault_kv_engine.secret(self.vault_secret_path)
 
-        fetched_secret_version = vault_kv_secret.version()
+        try:
+            fetched_secret_version = vault_kv_secret.version()
+        except Exception as e:
+            self._logger.critical("unable to fetch secret: {0}".format(e))
+            exit(-1)
+
         self._logger.debug("{0}: latest KV secret version: {1}".format(input_name, fetched_secret_version))
 
         try:
