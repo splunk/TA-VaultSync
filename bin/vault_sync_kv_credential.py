@@ -160,7 +160,7 @@ class VaultSyncKVCredentialScript(Script):
 
         try:
             vault = vault_interface.Vault(addr=self.vault_url, namespace=self.vault_namespace, approle_path=self.vault_approle_auth_path, role_id=self.vault_approle_role_id, secret_id=self.vault_approle_secret_id)
-        except:
+        except Exception as e:
             self._logger.critical("unable to authenticate to vault: {0}".format(e))
             exit(-1)
 
