@@ -45,6 +45,10 @@ class VaultKVSecret(VaultSecret):
     def version(self):
         return self._get()["metadata"]["version"]
 
+    def json(self):
+        # Vault._get already returns a deserialized object from the returned JSON, so reserialize it when asked to
+        return json.dumps(self._get()["data"])
+
     def key(self, key):
         return self._get()["data"][key]
 

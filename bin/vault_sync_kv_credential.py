@@ -73,6 +73,11 @@ class VaultSyncKVCredentialScript(Script):
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
+        "credential_store_json": {
+            "title": "Set to true to synchronize the entire KV secret contents as JSON",
+            "data_type": Argument.data_type_boolean,
+            "required_on_create": False,
+        },
         "credential_app": {
             "title": "The app context to use for the created/updated credential",
             "data_type": Argument.data_type_string,
@@ -173,7 +178,7 @@ class VaultSyncKVCredentialScript(Script):
         self._logger.debug("{0}: latest KV secret version: {1}".format(input_name, fetched_secret_version))
 
         fetched_vault_username = vault_kv_secret.key(self.vault_username_key)
-        fetched_vault_password = vault_kv_secret.key(self.vault_password_key)
+        fetched_vault_password = vault_kv_secret.key(self.vault_password_key) if self.credential_store_json else vault_kv_secret.json()
 
         credential_session = self.service
         # switch app context if one was specified
