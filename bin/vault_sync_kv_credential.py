@@ -194,7 +194,7 @@ class VaultSyncKVCredentialScript(Script):
             try:
                 found_clear_password = found_credential.content.clear_password
             except AttributeError:
-                self._logger.debug("{0}: credential entry has no clear password".format(input_name)
+                self._logger.debug("{0}: credential entry has no clear password".format(input_name))
 
             if found_clear_password != fetched_vault_password:
                 self._logger.debug("{0}: stored credential is out of date, updating".format(input_name))
