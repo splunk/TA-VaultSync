@@ -131,6 +131,11 @@ class VaultSyncKVCredentialScript(Script):
 
 
     def stream_events(self, inputs, ew):
+        # logging can't be configured until this point
+        # there is no session key available during __init__ (or get_scheme), and we need it to get the running config
+        self.configure_logging()
+        self._logger.debug("stream_events")
+
         try:
             self._stream_events(inputs, ew)
         except Exception as e:
@@ -138,12 +143,6 @@ class VaultSyncKVCredentialScript(Script):
             exit(-1)
 
     def _stream_events(self, inputs, ew):
-        # logging can't be configured until this point
-        # there is no session key available during __init__ (or get_scheme), and we need it to get the running config
-        self.configure_logging()
-
-        self._logger.debug("stream_events")
-
         for input_name, input_config in inputs.inputs.items():
             self._logger.debug("input_name: {0}".format(input_name))
 
