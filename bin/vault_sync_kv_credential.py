@@ -131,6 +131,13 @@ class VaultSyncKVCredentialScript(Script):
 
 
     def stream_events(self, inputs, ew):
+        try:
+            self._stream_events(inputs, ew)
+        except Exception as e:
+            self._logger.critical("unhandled exception: {0}".format(e))
+            exit(-1)
+
+    def _stream_events(self, inputs, ew):
         # logging can't be configured until this point
         # there is no session key available during __init__ (or get_scheme), and we need it to get the running config
         self.configure_logging()
@@ -158,34 +165,16 @@ class VaultSyncKVCredentialScript(Script):
                 setattr(self, argument_name, encryption.encrypt_and_get_secret(getattr(self, argument_name), argument_name))
                 self._logger.debug("{0}: handled encrypted argument {1}".format(input_name, argument_name))
 
-        try:
-            vault = vault_interface.Vault(addr=self.vault_url, namespace=self.vault_namespace, approle_path=self.vault_approle_auth_path, role_id=self.vault_approle_role_id, secret_id=self.vault_approle_secret_id)
-        except Exception as e:
-            self._logger.critical("unable to authenticate to vault: {0}".format(e))
-            exit(-1)
+        vault = vault_interface.Vault(addr=self.vault_url, namespace=self.vault_namespace, approle_path=self.vault_approle_auth_path, role_id=self.vault_approle_role_id, secret_id=self.vault_approle_secret_id)
 
         vault_kv_engine = vault.engine("kv", self.vault_engine_path)
+        vault_kv_secret = vault_kv_engine.secret(self.vault_secret_path)
 
-        try:
-            vault_kv_secret = vault_kv_engine.secret(self.vault_secret_path)
-        except Exception as e:
-            self._logger.critical("unable to fetch secret: {0}".format(e))
-            exit(-1)
-
-        try:
-            fetched_secret_version = vault_kv_secret.version()
-        except Exception as e:
-            self._logger.critical("unable to fetch secret: {0}".format(e))
-            exit(-1)
-
+        fetched_secret_version = vault_kv_secret.version()
         self._logger.debug("{0}: latest KV secret version: {1}".format(input_name, fetched_secret_version))
 
-        try:
-            fetched_vault_username = vault_kv_secret.key(self.vault_username_key)
-            fetched_vault_password = vault_kv_secret.key(self.vault_password_key)
-        except Exception as e:
-            self._logger.critical("unable to fetch secret: {0}".format(e))
-            exit(-1)
+        fetched_vault_username = vault_kv_secret.key(self.vault_username_key)
+        fetched_vault_password = vault_kv_secret.key(self.vault_password_key)
 
         credential_session = self.service
         # switch app context if one was specified
@@ -206,7 +195,7 @@ class VaultSyncKVCredentialScript(Script):
             try:
                 found_clear_password = found_credential.content.clear_password
             except AttributeError:
-                self._logger.info("{0}: credential entry has no clear password")
+                self._logger.debug("{0}: credential entry has no clear password".format(input_name)
 
             if found_clear_password != fetched_vault_password:
                 self._logger.debug("{0}: stored credential is out of date, updating".format(input_name))
