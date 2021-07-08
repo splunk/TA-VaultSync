@@ -157,8 +157,11 @@ class VaultSyncKVCredentialScript(Script):
                         self._logger.critical("{0} Missing required field {1}, quitting".format(input_name, argument_name))
                         sys.exit(-1)
 
+                argument_value = input_config.get(argument_name)
+                if self._arguments[argument_name].get('data_type') == Argument.data_type_boolean:
+                    argument_value = True if argument_value.lower() in ["true", "yes", "t", "y", "1"] else False
                 # use .get(argument_name) to use the default of None if missing
-                setattr(self, argument_name, input_config.get(argument_name))
+                setattr(self, argument_name, argument_value)
                 self._logger.debug("{0}: fetched argument {1}".format(input_name, argument_name))
 
             required_on_edit_field_names = filter(lambda argument_name: self._arguments[argument_name].get("required_on_edit", False), self._arguments)
@@ -178,7 +181,7 @@ class VaultSyncKVCredentialScript(Script):
         self._logger.debug("{0}: latest KV secret version: {1}".format(input_name, fetched_secret_version))
 
         fetched_vault_username = vault_kv_secret.key(self.vault_username_key)
-        fetched_vault_password = vault_kv_secret.key(self.vault_password_key) if self.credential_store_json else vault_kv_secret.json()
+        fetched_vault_password = vault_kv_secret.json() if self.credential_store_json else vault_kv_secret.key(self.vault_password_key)
 
         credential_session = self.service
         # switch app context if one was specified
