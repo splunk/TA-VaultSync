@@ -20,6 +20,7 @@ import sys
 import os
 import logging
 import logging.handlers
+import json
 from splunk_utils import secret_encryption
 from vault_utils import vault_interface
 
@@ -69,7 +70,7 @@ class VaultSyncKVCredentialScript(Script):
             "required_on_create": True,
         },
         "vault_password_key": {
-            "title": "The key in your KV secret containing the password to synchronize",
+            "title": "The key in your KV secret containing the password to synchronize. If credential_store_json=true, this can be a comma-delimited list of keys to synchronize as JSON.",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
         },
@@ -181,7 +182,11 @@ class VaultSyncKVCredentialScript(Script):
         self._logger.debug("{0}: latest KV secret version: {1}".format(input_name, fetched_secret_version))
 
         fetched_vault_username = vault_kv_secret.key(self.vault_username_key)
-        fetched_vault_password = vault_kv_secret.json() if self.credential_store_json else vault_kv_secret.key(self.vault_password_key)
+        fetched_vault_password = vault_kv_secret.key(self.vault_password_key)
+        if self.credential_store_json:
+            vault_password_keys = ",".split(self.vault_password_key)
+            vault_password_data = {key: vault_kv_secret.key(key) for key in vault_password_keys}
+            fetched_vault_password = json.dumps(vault_password_data)
 
         credential_session = self.service
         # switch app context if one was specified

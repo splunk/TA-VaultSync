@@ -12,8 +12,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import json
-
 from .engine import ConfiguredEngine, VaultEngine
 from .secret import VaultSecret
 
@@ -46,10 +44,6 @@ class VaultKVSecret(VaultSecret):
 
     def version(self):
         return self._get()["metadata"]["version"]
-
-    def json(self):
-        # Vault._get already returns a deserialized object from the returned JSON, so reserialize it when asked to
-        return json.dumps(self._get()["data"])
 
     def key(self, key):
         return self._get()["data"][key]
