@@ -184,7 +184,7 @@ class VaultSyncKVCredentialScript(Script):
         fetched_vault_username = vault_kv_secret.key(self.vault_username_key)
         fetched_vault_password = vault_kv_secret.key(self.vault_password_key)
         if self.credential_store_json:
-            vault_password_keys = ",".split(self.vault_password_key)
+            vault_password_keys = self.vault_password_key.split(",")
             vault_password_data = {key: vault_kv_secret.key(key) for key in vault_password_keys}
             fetched_vault_password = json.dumps(vault_password_data)
 
