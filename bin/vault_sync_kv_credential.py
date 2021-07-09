@@ -76,7 +76,7 @@ class VaultSyncKVCredentialScript(Script):
             "required_on_create": True,
         },
         "credential_store_json": {
-            "title": "Set to true to synchronize the entire KV secret contents as JSON",
+            "title": "Set to true to synchronize the vault_password_key(s) as a JSON document",
             "data_type": Argument.data_type_boolean,
             "required_on_create": False,
         },
