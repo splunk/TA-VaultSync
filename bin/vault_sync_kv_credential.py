@@ -18,6 +18,7 @@ from splunklib.modularinput import *
 from splunklib import client
 import sys
 import os
+import traceback
 import logging
 import logging.handlers
 import json
@@ -145,7 +146,7 @@ class VaultSyncKVCredentialScript(Script):
         try:
             self._stream_events(inputs, ew)
         except Exception as e:
-            self._logger.critical("unhandled exception: {0}".format(e))
+            self._logger.critical("unhandled exception: {0}".format(traceback.format_exc()))
             exit(-1)
 
     def _stream_events(self, inputs, ew):
