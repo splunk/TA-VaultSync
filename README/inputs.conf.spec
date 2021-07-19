@@ -23,6 +23,7 @@ vault_engine_path = <string>
 vault_secret_path = <string>
 vault_username_key = <string>
 vault_password_key = <string>
+credential_store_json = <bool>
 credential_app = <string>
 credential_realm = <string>
 remove_old_versions = <integer>

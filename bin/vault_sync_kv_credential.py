@@ -18,8 +18,10 @@ from splunklib.modularinput import *
 from splunklib import client
 import sys
 import os
+import traceback
 import logging
 import logging.handlers
+import json
 from splunk_utils import secret_encryption
 from vault_utils import vault_interface
 
@@ -69,9 +71,14 @@ class VaultSyncKVCredentialScript(Script):
             "required_on_create": True,
         },
         "vault_password_key": {
-            "title": "The key in your KV secret containing the password to synchronize",
+            "title": "The key in your KV secret containing the password to synchronize. If credential_store_json=true, this can be a comma-delimited list of keys to synchronize as JSON.",
             "data_type": Argument.data_type_string,
             "required_on_create": True,
+        },
+        "credential_store_json": {
+            "title": "Set to true to synchronize the vault_password_key(s) as a JSON document",
+            "data_type": Argument.data_type_boolean,
+            "required_on_create": False,
         },
         "credential_app": {
             "title": "The app context to use for the created/updated credential",
@@ -134,9 +141,15 @@ class VaultSyncKVCredentialScript(Script):
         # logging can't be configured until this point
         # there is no session key available during __init__ (or get_scheme), and we need it to get the running config
         self.configure_logging()
-
         self._logger.debug("stream_events")
 
+        try:
+            self._stream_events(inputs, ew)
+        except Exception as e:
+            self._logger.critical("unhandled exception: {0}".format(traceback.format_exc()))
+            exit(-1)
+
+    def _stream_events(self, inputs, ew):
         for input_name, input_config in inputs.inputs.items():
             self._logger.debug("input_name: {0}".format(input_name))
 
@@ -146,8 +159,11 @@ class VaultSyncKVCredentialScript(Script):
                         self._logger.critical("{0} Missing required field {1}, quitting".format(input_name, argument_name))
                         sys.exit(-1)
 
+                argument_value = input_config.get(argument_name)
+                if self._arguments[argument_name].get('data_type') == Argument.data_type_boolean:
+                    argument_value = True if argument_value.lower() in ["true", "yes", "t", "y", "1"] else False
                 # use .get(argument_name) to use the default of None if missing
-                setattr(self, argument_name, input_config.get(argument_name))
+                setattr(self, argument_name, argument_value)
                 self._logger.debug("{0}: fetched argument {1}".format(input_name, argument_name))
 
             required_on_edit_field_names = filter(lambda argument_name: self._arguments[argument_name].get("required_on_edit", False), self._arguments)
@@ -168,6 +184,10 @@ class VaultSyncKVCredentialScript(Script):
 
         fetched_vault_username = vault_kv_secret.key(self.vault_username_key)
         fetched_vault_password = vault_kv_secret.key(self.vault_password_key)
+        if self.credential_store_json:
+            vault_password_keys = self.vault_password_key.split(",")
+            vault_password_data = {key: vault_kv_secret.key(key) for key in vault_password_keys}
+            fetched_vault_password = json.dumps(vault_password_data)
 
         credential_session = self.service
         # switch app context if one was specified
@@ -183,7 +203,14 @@ class VaultSyncKVCredentialScript(Script):
             self._logger.debug("{0}: found existing credential".format(input_name))
 
             found_credential = credential_session.storage_passwords[credential_title]
-            if found_credential.content.clear_password != fetched_vault_password:
+
+            found_clear_password = None
+            try:
+                found_clear_password = found_credential.content.clear_password
+            except AttributeError:
+                self._logger.debug("{0}: credential entry has no clear password".format(input_name))
+
+            if found_clear_password != fetched_vault_password:
                 self._logger.debug("{0}: stored credential is out of date, updating".format(input_name))
                 found_credential.update(password=fetched_vault_password)
             else:
